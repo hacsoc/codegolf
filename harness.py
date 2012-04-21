@@ -162,7 +162,7 @@ def monitor_query(p, start_time, expected):
   
 def query(p, text, expected):
   start_time = time.time()
-  p.stdin.write(text)
+  p.stdin.write(text.encode('utf8'))
   p.stdin.write('\n')
   p.stdin.flush()
   return monitor_query(p, start_time, expected)
