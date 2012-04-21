@@ -23,3 +23,26 @@ sees a newline character the harness enters "query phase"
 
 
 
+
+Clean Function
+==============
+
+    def clean(text):
+      return (
+          text
+          .lower()
+          .replace('/', '')
+          .replace('(', '')
+          .replace(')', '')
+          .replace(')', '')
+          .replace(':', '')
+          .replace('.', '')
+          .replace(',', '')
+          .replace(';', '')
+          .replace(';', '')
+          .replace('?', ' ?')
+          .replace('!', ' !')
+          .replace('-', ' - '))
+
+
+
