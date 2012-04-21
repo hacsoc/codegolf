@@ -6,6 +6,8 @@ We will be using this repo to submit the code for codegolf on Saturday April 21,
 Running the Harness
 ===================
 
+(not on linux? try harness\_dumb.py)
+
 by Example:
 
     $ python harness.py -d ../hacsoc_code_golf/ -r /tmp/results/results.micro python index.py /tmp/reviews/reviews.micro 
