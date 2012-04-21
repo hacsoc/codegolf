@@ -1,13 +1,14 @@
 
-import sys, os, fcntl, subprocess, time, errno, signal, pty, json
+import sys, os, fcntl, subprocess, time, errno, signal, pty, json, random
 from getopt import getopt, GetoptError
+random.seed()
 
 usage_message = 'harness.py [-d directory] program'
 extended_message = ''
 
 MEMLIMIT= int(1.5 * 10**9) # 1.5GB
-INDEX_TIME = 10.5 # 6 * 60 # 6 min
-QUERY_TIME = 1 * 60 # 1 min
+INDEX_TIME = 6 * 60 # 6 min
+QUERY_TIME = 2 * 60 # 2 min
 error_codes = {
   'mem': 1,
   'index_time': 2,
@@ -17,6 +18,26 @@ error_codes = {
   'file_instead_of_dir':6,
 }
 
+def getqueries():
+  with open('results.json', 'r') as f:
+    return json.load(f)
+
+def _getqueries():
+  dic = list()
+  with open('en-US.dic', 'r') as f:
+    for line in f:
+      dic.append(line.strip())
+  for x in xrange(200):
+    query = list()
+    for y in xrange(random.randint(1, 6)):
+      word = random.choice(dic).replace("'", '')
+      start = random.randint(0, len(word)/2-1)
+      end = random.randint(start+1, len(word))
+      substr = word[start:end]
+      if len(substr) < 3: continue
+      query.append(substr)
+    if not query: continue
+    yield ' '.join(query), set()
 
 def log(*msgs):
   for msg in msgs:
@@ -31,13 +52,13 @@ def output(*msgs):
   sys.stdout.flush()
 
 def usage(code=None):
-    '''Prints the usage and exits with an error code specified by code. If code
-    is not given it exits with error_codes['usage']'''
-    log(usage_message)
-    if code is None:
-        log(extended_message)
-        code = error_codes['usage']
-    sys.exit(code)
+  '''Prints the usage and exits with an error code specified by code. If code
+  is not given it exits with error_codes['usage']'''
+  log(usage_message)
+  if code is None:
+    log(extended_message)
+    code = error_codes['usage']
+  sys.exit(code)
 
 def _eintr_retry_call(func, *args):
   while True:
@@ -59,11 +80,11 @@ def start(directory, program):
   print program
   #p = subprocess.Popen(' '.join(program), shell=True, stdin=subprocess.PIPE, 
   p = subprocess.Popen(program, stdin=subprocess.PIPE, 
-      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+      stdout=subprocess.PIPE, bufsize=4096)
   #p = pty.spawn(program)
-  ##fd = p.stdout.fileno()
-  #fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-  #fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+  fd = p.stdout.fileno()
+  fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+  fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
   os.chdir(cwd)
   return p, time.time()
 
@@ -84,7 +105,7 @@ def check_indexing_resources(p, start_time):
     sys.exit(error_codes['mem'])
   if time.time() - start_time > INDEX_TIME:
     kill(p)
-    log("You used to much time, killing")
+    log("You used to much (index) time, killing")
     sys.exit(error_codes['index_time'])
 
 def monitor_indexing(p, start_time):
@@ -96,6 +117,8 @@ def monitor_indexing(p, start_time):
       sys.stderr.write(text)
       sys.stderr.flush()
       sys.stdout.flush()
+    else:
+      time.sleep(.001)
   
 def check_query_resources(p, start_time):
   mem = getmem(p)
@@ -105,36 +128,49 @@ def check_query_resources(p, start_time):
     sys.exit(error_codes['mem'])
   if time.time() - start_time > QUERY_TIME:
     kill(p)
-    log("You used to much time, killing")
-    sys.exit(error_codes['index_time'])
+    log("You used to much (query) time, killing")
+    sys.exit(error_codes['query_time'])
 
-def monitor_query(p, start_time):
+def load_results(buf):
+  log(buf)
+  if buf == '[]': return set()
+  else: return set(json.loads(buf))
+
+def monitor_query(p, start_time, expected):
+  buf = ''
   text = ''
   while '>' not in text:
     check_query_resources(p, start_time)
     text = nb_read(p.stdout, 1)
-    if text != '': 
-      sys.stderr.write(text)
-      sys.stderr.flush()
-      sys.stdout.flush()
+    if text != '' and '>' not in text: 
+      buf += text
+    else:
+      time.sleep(.001)
+  buf = buf.strip()
   return time.time() - start_time
+  #return time.time() - start_time, load_results(buf) == expected
   
-def query(p, text):
+def query(p, text, expected):
   start_time = time.time()
   p.stdin.write(text)
   p.stdin.write('\n')
   p.stdin.flush()
-  return monitor_query(p, start_time)
+  return monitor_query(p, start_time, expected)
 
 def run(directory, program):
   p, start_time = start(directory, program)
   monitor_indexing(p, start_time)
-  queries = ['never', 'have', 'was in the world']
-  times = [query(p,q) for q in queries] 
+  #times = [query(p,q,set(res)) for q,res in getqueries().iteritems()] 
+  #times = [query(p,q,set(res)) for q,res in _getqueries()] 
+  for q, res in _getqueries():
+    print q, 
+    sys.stdout.flush()
+    print query(p,q,res)
+    sys.stdout.flush()
   os.kill(p.pid, signal.SIGINT)
   #print p.communicate()
-  p.stdin.close()
-  print times
+  #p.stdin.close()
+  #print times
   print 'finished'
   
 def assert_dir_exists(path):
