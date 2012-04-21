@@ -18,9 +18,10 @@ error_codes = {
   'file_instead_of_dir':6,
 }
 
-def getqueries():
-  with open('results.json', 'r') as f:
-    return json.load(f)
+def loadqueries(path):
+  with open(path, 'r') as f:
+    Q = json.load(f)
+  for k,v in Q.iteritems(): yield k,v 
 
 def _getqueries():
   dic = list()
@@ -59,6 +60,14 @@ def usage(code=None):
     log(extended_message)
     code = error_codes['usage']
   sys.exit(code)
+
+def avg(g):
+  c = 0.0
+  s = 0.0
+  for i in g:
+    c += 1.0
+    s += i
+  return s/c
 
 def _eintr_retry_call(func, *args):
   while True:
@@ -132,7 +141,7 @@ def check_query_resources(p, start_time):
     sys.exit(error_codes['query_time'])
 
 def load_results(buf):
-  log(buf)
+  #log(buf)
   if buf == '[]': return set()
   else: return set(json.loads(buf))
 
@@ -147,8 +156,8 @@ def monitor_query(p, start_time, expected):
     else:
       time.sleep(.001)
   buf = buf.strip()
-  return time.time() - start_time
-  #return time.time() - start_time, load_results(buf) == expected
+  #return time.time() - start_time
+  return time.time() - start_time, (load_results(buf) == expected)
   
 def query(p, text, expected):
   start_time = time.time()
@@ -157,41 +166,58 @@ def query(p, text, expected):
   p.stdin.flush()
   return monitor_query(p, start_time, expected)
 
-def run(directory, program):
+def run(directory, program, queries):
   p, start_time = start(directory, program)
   monitor_indexing(p, start_time)
   #times = [query(p,q,set(res)) for q,res in getqueries().iteritems()] 
   #times = [query(p,q,set(res)) for q,res in _getqueries()] 
-  for q, res in _getqueries():
+  times = list()
+  for q, res in loadqueries(queries):
     print q, 
     sys.stdout.flush()
-    print query(p,q,res)
+    runtime, succ = query(p,q,set(res))
+    print runtime, succ
     sys.stdout.flush()
+    times.append((runtime, succ))
   os.kill(p.pid, signal.SIGINT)
-  #print p.communicate()
-  #p.stdin.close()
-  #print times
-  print 'finished'
+  p.wait()
+  with open(os.path.join(directory, 'times.json'), 'w') as f:
+    json.dump(times, f)
+  print
+  print 'all pass?', all(succ for runtime, succ in times)
+  print 'mean time', avg([runtime for runtime, succ in times])
   
+def assert_file_exists(path):
+  '''checks if the file exists. If it doesn't causes the program to exit.
+  @param path : path to file
+  @returns : the path to the file (an echo) [only on success]
+  '''
+  path = os.path.abspath(path)
+  if not os.path.exists(path):
+    log('No file found. "%(path)s"' % locals())
+    usage(error_codes['file_not_found'])
+  return path
+
+
 def assert_dir_exists(path):
-    '''checks if a directory exists. if not it creates it. if something exists
-    and it is not a directory it exits with an error.
-    '''
-    path = os.path.abspath(path)
-    if not os.path.exists(path):
-        os.mkdir(path)
-    elif not os.path.isdir(path):
-        log('Expected a directory found a file. "%(path)s"' % locals())
-        usage(error_codes['file_instead_of_dir'])
-    return path
+  '''checks if a directory exists. if not it creates it. if something exists
+  and it is not a directory it exits with an error.
+  '''
+  path = os.path.abspath(path)
+  if not os.path.exists(path):
+    os.mkdir(path)
+  elif not os.path.isdir(path):
+    log('Expected a directory found a file. "%(path)s"' % locals())
+    usage(error_codes['file_instead_of_dir'])
+  return path
 
 def main(args):
   try:
     opts, args = getopt(
       args,
-      'hd:',
+      'hd:r:',
       [
-        'help', 'dir='
+        'help', 'dir=', 'results='
       ]
     )
   except GetoptError, err:
@@ -200,18 +226,22 @@ def main(args):
 
   program = None
   directory = os.getcwd()
+  queries = None
   for opt, arg in opts:
     if opt in ('-h', '--help'):
       usage()
     elif opt in ('-d', '--dir'):
       directory = assert_dir_exists(arg)
+    elif opt in ('-r', '--results'):
+      queries = assert_file_exists(arg)
   
   if not args:
     log('must supply program')
     usage(error_codes['input'])
   program = args
 
-  run(directory, program)
+  run(directory, program, queries)
+  print 'finished'
 
 if __name__ == '__main__':
   main(sys.argv[1:])
