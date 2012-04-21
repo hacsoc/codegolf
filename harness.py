@@ -156,9 +156,10 @@ def monitor_query(p, start_time, expected):
       buf += text
     else:
       time.sleep(.001)
+  end_time = time.time()
   buf = buf.strip()
   #return time.time() - start_time
-  return time.time() - start_time, (load_results(buf) == expected)
+  return end_time - start_time, (load_results(buf) == expected)
   
 def query(p, text, expected):
   start_time = time.time()
