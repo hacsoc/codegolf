@@ -22,7 +22,30 @@ you can write anything you want to stderr and stdout EXCEPT `>` as soon as it
 sees a newline character the harness enters "query phase"
 
 
+query phase
+-----------
 
+example code: (python)
+
+    sys.stdout.flush()
+    while True:
+      sys.stdout.write('> '); sys.stdout.flush()
+      try: inpt = sys.stdin.readline()
+      except: break;
+      if not inpt: continue
+      inpt = clean(inpt)
+      inpt = inpt.split()
+      query(*inpt)
+    sys.stdout.flush()
+
+what happens:
+
+- you write a `>` to the stdout this is the "prompt"
+- then you read a line from the stdin
+- you do your query
+- you collect all the revids put them in a list
+- encode the list ["revid1", "revid2", ....] eg. as a json list
+- write the encoded list to the stdout
 
 Clean Function
 ==============
