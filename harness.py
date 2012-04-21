@@ -34,6 +34,7 @@ def _getqueries():
       word = random.choice(dic).replace("'", '')
       start = random.randint(0, len(word)/2-1)
       end = random.randint(start+1, len(word))
+      if end - start < 1: continue
       substr = word[start:end]
       if len(substr) < 3: continue
       query.append(substr)

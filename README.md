@@ -3,6 +3,16 @@ Code Golf Submission Repo
 
 We will be using this repo to submit the code for codegolf on Saturday April 21, 2012.
 
+Running the Harness
+===================
+
+by Example:
+
+    $ python harness.py -d ../hacsoc_code_golf/ -r /tmp/results/results.micro python index.py /tmp/reviews/reviews.micro 
+
+by Format:
+    
+    $ python harness.py -d <directory of you code> -r <path to results> [your program] <path to reviews>
 
 Interface
 =========
