@@ -6,7 +6,8 @@ random.seed()
 usage_message = 'harness.py [-d directory] program'
 extended_message = ''
 
-MEMLIMIT= int(1.5 * 10**9) # 1.5GB
+MEMLIMIT= int(1.5 * 10**6) # 1.5GB (in KB as that is how /proc/pid/statm reports
+                           # it
 INDEX_TIME = 6 * 60 # 6 min
 QUERY_TIME = 2 * 60 # 2 min
 error_codes = {
@@ -149,13 +150,14 @@ def load_results(buf):
 def monitor_query(p, start_time, expected):
   buf = ''
   text = ''
+  i = 0
   while '>' not in text:
-    check_query_resources(p, start_time)
+    i = (i + 1) % 10000
+    if i == 0:
+      check_query_resources(p, start_time)
     text = nb_read(p.stdout, 1)
     if text != '' and '>' not in text: 
       buf += text
-    else:
-      time.sleep(.001)
   end_time = time.time()
   buf = buf.strip()
   #return time.time() - start_time
@@ -171,6 +173,7 @@ def query(p, text, expected):
 def run(directory, program, queries):
   p, start_time = start(directory, program)
   monitor_indexing(p, start_time)
+  print 'Total indexing mem:', getmem(p)
   #times = [query(p,q,set(res)) for q,res in getqueries().iteritems()] 
   #times = [query(p,q,set(res)) for q,res in _getqueries()] 
   times = list()
