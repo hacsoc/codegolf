@@ -15,10 +15,11 @@ def pplot(path, x):
 
     plt.clf()
 
-def boxplot(path, *args):
+def boxplot(path, labels, *args):
     fig = plt.figure()
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.boxplot(args)
+    ax.set_xticklabels(labels)
     plt.savefig(path, format='png')
     plt.clf()
 

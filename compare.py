@@ -6,7 +6,7 @@ import warnings
 from anovalib import *
 
 def compute(observations):
-  boxplot('compare/box.png', *(t
+  boxplot('compare/box.png', sorted(observations.keys()), *(t
     for k, t in sorted(observations.iteritems(), key=lambda x: x[0])))
   #scatterplot('compare/scatter.png',
       #observations.keys(), [np.mean(t) for t in observations.values()],
@@ -49,7 +49,7 @@ def main(args):
       ptimes = json.load(f)
     ptimes = [math.log(x[0]) for x in ptimes]
     #print ptimes
-    times[os.path.splitext(os.path.basename(path))[0]] = ptimes
+    times[os.path.splitext(os.path.basename(path))[0].split('-', 1)[0]] = ptimes
   n = min(len(v) for v in times.values())
   for k,v in times.iteritems():
     times[k] = v[:n]
