@@ -11,10 +11,16 @@ def compute(observations):
   #scatterplot('compare/scatter.png',
       #observations.keys(), [np.mean(t) for t in observations.values()],
       #'Cotton Percentage', 'Average Breaking Strength')
-  residualplots('compare/', [(k,t) for k, t in sorted(observations.iteritems(),
+  residualplots('compare/', sorted(observations.keys()), [(k,t) for k, t in sorted(observations.iteritems(),
     key=lambda x: x[0])])
   anova = f_oneway(*observations.values())
   for line in anova:
+    print '\t'.join(str(col) for col in line)
+  mean_cmp, pstd = mean_comparison([(k,t)
+    for k, t in sorted(observations.iteritems(), key=lambda x: x[0])])
+  mean_cmp = [mean_cmp[0]] + sorted(mean_cmp[1:], key=lambda x: x[2])
+  print
+  for line in mean_cmp:
     print '\t'.join(str(col) for col in line)
  
 def assert_file_exists(path):

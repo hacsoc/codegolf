@@ -52,7 +52,7 @@ def histplot(path, x):
     plt.savefig(path, format='png')
     plt.clf()
 
-def residualplots(prefix, treatments):
+def residualplots(prefix, labels, treatments):
     tot_mean = np.mean([ob for k, t in treatments for ob in t])
     residuals = [ob - tot_mean for k, t in treatments for ob in t]
     grouped_residuals = [[ob - tot_mean for ob in t] for k, t in treatments ]
@@ -62,7 +62,7 @@ def residualplots(prefix, treatments):
       prefix + 'Rorder.png', [i for i in xrange(1, len(residuals)+1)], residuals,
       'Observation Order', 'Residuals')
     boxplot(
-      prefix + 'Rbox.png', *grouped_residuals)
+      prefix + 'Rbox.png', labels, *grouped_residuals)
 
 
 def _chk_asarray(a, axis):
@@ -151,9 +151,9 @@ def mean_comparison(treatments):
     pooled_stdev = math.sqrt(N/D)
     #print 'pooled stdev', pooled_stdev
 
-    table = [['Treatment Level', 'Mean', 'Stdev', 'CI (80\%)']]
+    table = [['', 'Mean', 'Stdev', 'CI (95%)']]
     for level, t in treatments:
-        ci_low, ci_high = stats.norm(loc=np.mean(t), scale=pooled_stdev).interval(.20)
+        ci_low, ci_high = stats.norm(loc=np.mean(t), scale=pooled_stdev).interval(.05)
         table.append((level, round(np.mean(t), 3), round(np.std(t, ddof=1), 3),
           '(%s, %s)' % (round(ci_low, 3), round(ci_high, 3))))
     return table, pooled_stdev
