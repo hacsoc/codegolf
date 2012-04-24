@@ -22,6 +22,11 @@ def compute(observations):
   print
   for line in mean_cmp:
     print '\t'.join(str(col) for col in line)
+
+  if len(observations) == 2:
+    print
+    print 'ttest_ind p-value',
+    print '%5f' % stats.ttest_ind(*observations.values())[1]
  
 def assert_file_exists(path):
   '''checks if the file exists. If it doesn't causes the program to exit.
