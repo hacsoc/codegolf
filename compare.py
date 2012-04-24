@@ -18,7 +18,7 @@ def compute(observations):
     print '\t'.join(str(col) for col in line)
   mean_cmp, pstd = mean_comparison([(k,t)
     for k, t in sorted(observations.iteritems(), key=lambda x: x[0])])
-  mean_cmp = [mean_cmp[0]] + sorted(mean_cmp[1:], key=lambda x: x[2])
+  mean_cmp = [mean_cmp[0]] + sorted(mean_cmp[1:], key=lambda x: x[1])
   print
   for line in mean_cmp:
     print '\t'.join(str(col) for col in line)
